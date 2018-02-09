@@ -1,6 +1,57 @@
-/////////////////////////////////////
-/// DHT code and helper functions ///
-/////////////////////////////////////
+#define ETHERNET 1
+
+
+#include <dht.h>
+#if ETHERNET
+#include <SPI.h>
+#include <EtherCard.h>
+#endif
+
+dht DHT;
+
+#define OFF LOW
+#define ON HIGH
+
+
+#define FANTOGGLEDELTA 1
+#define DEWPOINTDELTA 5
+#define DHTREADFREQUENCY 20000    // read once every 20 sec
+#define DOORDHTPIN 2
+#define REARDHTPIN 3
+#define FRONTDHTPIN 4
+
+#define FANSWITCHFREQUENCY 120000 // switch not more often than once every 2 min
+#define FANPIN 5
+
+#if ETHERNET
+static byte Ethernet::buffer[500];
+static byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0x31 };
+//static byte ip[] = {192, 168, 10, 200};
+static byte dstip[] = {192, 168, 10, 2};
+static unsigned int srcport = 1234; 
+static unsigned int dstport = 1234; 
+#endif
+
+
+long timerdht = 0;
+long timerfan = 0;
+double doorhumidity;
+double doortemperature;
+double doordewpoint;
+double fronthumidity;
+double fronttemperature;
+double frontdewpoint;
+double rearhumidity;
+double reartemperature;
+double reardewpoint;
+
+
+
+
+
+
+
+
 
 
 // dewPoint function NOAA
@@ -28,49 +79,6 @@ double dewPoint(double celsius, double humidity)
 
 
 
-////////////////////
-/// global stuff ///
-////////////////////
-
-#include <dht.h>
-//#include <SPI.h>
-//#include <EtherCard.h>
-
-#define OFF LOW
-#define ON HIGH
-
-
-dht DHT;
-#define DHTREADFREQUENCY 20000    // read once every 20 sec
-#define DOORDHTPIN 2
-#define REARDHTPIN 3
-#define FRONTDHTPIN 4
-
-#define FANSWITCHFREQUENCY 120000 // switch not more often than once every 2 min
-#define FANPIN 5
-
-//static byte mac[] = { 0x74,0x69,0x69,0x2D,0x30,0x31 };
-//static byte ip[] = {192, 168, 10, 200};
-
-long timerdht = 0;
-long timerfan = 0;
-double doorhumidity;
-double doortemperature;
-double doordewpoint;
-double fronthumidity;
-double fronttemperature;
-double frontdewpoint;
-double rearhumidity;
-double reartemperature;
-double reardewpoint;
-
-
-#define FANTOGGLEDELTA 1
-#define DEWPOINTDELTA 5
-
-//////////////////////
-/// main functions ///
-//////////////////////
 
 
 void setup()
@@ -78,10 +86,31 @@ void setup()
   Serial.begin(115200);
   Serial.println("booting up...");
   pinMode(FANPIN, OUTPUT);
+
+#if ETHERNET
+  Serial.println("init ethernet...");
+  if (ether.begin(sizeof Ethernet::buffer, mymac) == 0)
+    Serial.println(F("Failed to access Ethernet controller"));
+  if (!ether.dhcpSetup())
+    Serial.println(F("DHCP failed"));
+
+  ether.printIp("IP:  ", ether.myip);
+  ether.printIp("GW:  ", ether.gwip);
+  ether.printIp("DNS: ", ether.dnsip);
+#endif
+
 }
+
+
+
+
 
 void loop()
 {
+
+#if ETHERNET
+  ether.packetLoop(ether.packetReceive());
+#endif
 
   if ( millis() - timerdht >= DHTREADFREQUENCY ) {    // read DHT not more than once every DHTREADFREQUENCY
     Serial.println("reading DHT...");
@@ -128,6 +157,14 @@ void loop()
     Serial.print((float)reartemperature, 2);
     Serial.print("\tDewPoint (C): ");
     Serial.println((float)reardewpoint, 2);
+
+
+#if ETHERNET
+    char msg[] = {"Hello World"};
+    ether.sendUdp(msg, sizeof msg, srcport, dstip, dstport);
+#endif
+
+
   }
 
   if ( millis() - timerfan >= FANSWITCHFREQUENCY ) {    // read DHT not more than once every FANSWITCHFREQUENCY
@@ -143,4 +180,5 @@ void loop()
        Serial.println(" OFF");
     }
   }
+
 }
