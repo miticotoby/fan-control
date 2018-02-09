@@ -1,0 +1,6 @@
+[submodule "libs/EtherCard"]
+	path = libs/EtherCard
+	url = https://github.com/jcw/ethercard.git
+[submodule "libs/dht"]
+	path = libs/dht
+	url = git@github.com:miticotoby/dht.git
