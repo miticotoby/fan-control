@@ -24,17 +24,18 @@ dht DHT;
 #define FANPIN 5
 
 #if ETHERNET
-static byte Ethernet::buffer[500];
-static byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0x31 };
+byte Ethernet::buffer[500];
+static const byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0x31 };
 //static byte ip[] = {192, 168, 10, 200};
-static byte dstip[] = {192, 168, 10, 2};
-static unsigned int srcport = 1234; 
-static unsigned int dstport = 1234; 
+//const byte dstip[] = {192, 168, 10, 2};
+const char destination[] PROGMEM = "loxone";
+const unsigned int srcport PROGMEM = 1234; 
+const unsigned int dstport PROGMEM = 1234; 
 #endif
 
 
-long timerdht = 0;
-long timerfan = 0;
+static uint32_t timerdht = 0;
+static uint32_t timerfan = 0;
 double doorhumidity;
 double doortemperature;
 double doordewpoint;
@@ -97,6 +98,12 @@ void setup()
   ether.printIp("IP:  ", ether.myip);
   ether.printIp("GW:  ", ether.gwip);
   ether.printIp("DNS: ", ether.dnsip);
+
+  if (!ether.dnsLookup(destination))
+    Serial.println("DNS failed");
+
+  ether.printIp("SRV: ", ether.hisip);
+
 #endif
 
 }
@@ -112,9 +119,9 @@ void loop()
   ether.packetLoop(ether.packetReceive());
 #endif
 
-  if ( millis() - timerdht >= DHTREADFREQUENCY ) {    // read DHT not more than once every DHTREADFREQUENCY
+  if ( millis() > timerdht ) {    // read DHT not more than once every DHTREADFREQUENCY
     Serial.println("reading DHT...");
-    timerdht = millis();
+    timerdht = millis() + DHTREADFREQUENCY;
 
     // reading the DHTs
     if ( DHT.read(DOORDHTPIN) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
@@ -160,16 +167,18 @@ void loop()
 
 
 #if ETHERNET
-    char msg[] = {"Hello World"};
-    ether.sendUdp(msg, sizeof msg, srcport, dstip, dstport);
+    char msg[50];
+    sprintf(msg, "Humidity Front %f.2");
+    Serial.println(msg);
+    ether.sendUdp(msg, sizeof(msg), srcport, ether.hisip, dstport);
 #endif
 
 
   }
 
-  if ( millis() - timerfan >= FANSWITCHFREQUENCY ) {    // read DHT not more than once every FANSWITCHFREQUENCY
+  if ( millis() > timerfan ) {    // read DHT not more than once every FANSWITCHFREQUENCY
     Serial.print("FAN ...");
-    timerdht = millis();
+    timerfan = millis() + FANSWITCHFREQUENCY;
     if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
        // turn on fan if dewpoint outside is < dewpoint inside - the delta 
        digitalWrite(FANPIN, ON);
