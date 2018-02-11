@@ -16,12 +16,12 @@ dht DHT;
 #define FANTOGGLEDELTA 1
 #define DEWPOINTDELTA 5
 #define DHTREADFREQUENCY 20000    // read once every 20 sec
-#define DOORDHTPIN 2
-#define REARDHTPIN 3
-#define FRONTDHTPIN 4
+#define DOORDHT 2
+#define REARDHT 3
+#define FRONTDHT 4
 
 #define FANSWITCHFREQUENCY 120000 // switch not more often than once every 2 min
-#define FANPIN 5
+#define FAN 5
 
 #if ETHERNET
 byte Ethernet::buffer[500];
@@ -86,7 +86,7 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("booting up...");
-  pinMode(FANPIN, OUTPUT);
+  pinMode(FAN, OUTPUT);
 
 #if ETHERNET
   Serial.println("init ethernet...");
@@ -111,7 +111,6 @@ void setup()
 
 
 
-
 void loop()
 {
 
@@ -124,17 +123,17 @@ void loop()
     timerdht = millis() + DHTREADFREQUENCY;
 
     // reading the DHTs
-    if ( DHT.read(DOORDHTPIN) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
+    if ( DHT.read(DOORDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       doorhumidity    = DHT.humidity;
       doortemperature = DHT.temperature;
       doordewpoint    = dewPoint(doortemperature, doorhumidity);
     }
-    if ( DHT.read(FRONTDHTPIN) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
+    if ( DHT.read(FRONTDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       fronthumidity    = DHT.humidity;
       fronttemperature = DHT.temperature;
       frontdewpoint    = dewPoint(fronttemperature, fronthumidity);
     }
-    if ( DHT.read(REARDHTPIN) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
+    if ( DHT.read(REARDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       rearhumidity    = DHT.humidity;
       reartemperature = DHT.temperature;
       reardewpoint    = dewPoint(reartemperature, rearhumidity);
@@ -168,7 +167,7 @@ void loop()
 
 #if ETHERNET
     char msg[50];
-    sprintf(msg, "Humidity Front %f.2");
+    sprintf(msg, "Humidity Front %f.1");
     Serial.println(msg);
     ether.sendUdp(msg, sizeof(msg), srcport, ether.hisip, dstport);
 #endif
@@ -181,11 +180,11 @@ void loop()
     timerfan = millis() + FANSWITCHFREQUENCY;
     if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
        // turn on fan if dewpoint outside is < dewpoint inside - the delta 
-       digitalWrite(FANPIN, ON);
+       digitalWrite(FAN, ON);
        Serial.println(" ON");
     } else if ( doordewpoint > (reardewpoint - DEWPOINTDELTA + FANTOGGLEDELTA ) ) {
        // turn off fan
-       digitalWrite(FANPIN, OFF);
+       digitalWrite(FAN, OFF);
        Serial.println(" OFF");
     }
   }
