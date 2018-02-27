@@ -23,6 +23,9 @@ dht DHT;
 #define FANSWITCHFREQUENCY 120000 // switch not more often than once every 2 min
 #define FAN 5
 
+
+
+
 #if ETHERNET
 byte Ethernet::buffer[500];
 static const byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0x31 };
@@ -82,6 +85,27 @@ double dewPoint(double celsius, double humidity)
 
 
 
+
+
+void printline(char *sensor, double hum, double temp, double dew) {
+    Serial.print("\t");
+    Serial.print(sensor);
+    Serial.println(":");
+    Serial.print("\t\tHumidity (%): ");
+    Serial.print((float)hum, 2);
+    Serial.print("\tTemperature (C): ");
+    Serial.print((float)temp, 2);
+    Serial.print("\tDewPoint (C): ");
+    Serial.println((float)dew, 2);
+}
+
+
+
+
+
+
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -107,6 +131,8 @@ void setup()
 #endif
 
 }
+
+
 
 
 
@@ -139,35 +165,14 @@ void loop()
       reardewpoint    = dewPoint(reartemperature, rearhumidity);
     }
 
-
-    Serial.println("\tDoor: ");
-    Serial.print("\t\tHumidity (%): ");
-    Serial.print((float)doorhumidity, 2);
-    Serial.print("\tTemperature (C): ");
-    Serial.print((float)doortemperature, 2);
-    Serial.print("\tDewPoint (C): ");
-    Serial.println((float)doordewpoint, 2);
-
-    Serial.println("Front: ");
-    Serial.print("\t\tHumidity (%): ");
-    Serial.print((float)fronthumidity, 2);
-    Serial.print("\tTemperature (C): ");
-    Serial.print((float)fronttemperature, 2);
-    Serial.print("\tDewPoint (C): ");
-    Serial.println((float)frontdewpoint, 2);
-
-    Serial.println("Rear: ");
-    Serial.print("\t\tHumidity (%): ");
-    Serial.print((float)rearhumidity, 2);
-    Serial.print("\tTemperature (C): ");
-    Serial.print((float)reartemperature, 2);
-    Serial.print("\tDewPoint (C): ");
-    Serial.println((float)reardewpoint, 2);
+    printline("door", doorhumidity, doortemperature, doordewpoint);
+    printline("front", fronthumidity, fronttemperature, frontdewpoint);
+    printline("rear", rearhumidity, reartemperature, reardewpoint);
 
 
 #if ETHERNET
     char msg[50];
-    sprintf(msg, "Humidity Front %f.1");
+    sprintf(msg, "Humidity Front %.1f", rearhumidity);
     Serial.println(msg);
     ether.sendUdp(msg, sizeof(msg), srcport, ether.hisip, dstport);
 #endif
