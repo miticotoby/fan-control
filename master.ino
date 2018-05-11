@@ -180,7 +180,7 @@ void loop()
 
   }
 
-  if ( millis() > timerfan ) {    // read DHT not more than once every FANSWITCHFREQUENCY
+  if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
     Serial.print("FAN ...");
     timerfan = millis() + FANSWITCHFREQUENCY;
     if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
