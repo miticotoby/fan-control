@@ -198,7 +198,7 @@ void loop()
   if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
     Serial.print("FAN ...");
     timerfan = millis() + FANSWITCHFREQUENCY;
-    /* if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
+    if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
        // turn on fan if dewpoint outside is < dewpoint inside - the delta 
        digitalWrite(FAN, ON);
        Serial.println(" ON");
@@ -207,17 +207,6 @@ void loop()
        digitalWrite(FAN, OFF);
        Serial.println(" OFF");
     }
-    */
-    if ( status == 1 ) {
-       Serial.print("toby on");
-       digitalWrite(FAN, ON);
-       status = 0;
-    } else {
-       Serial.print("toby off");
-       digitalWrite(FAN, OFF);
-       status = 1;
-    }
-    Serial.println(status);
   }
 
 }
