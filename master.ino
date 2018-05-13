@@ -16,12 +16,13 @@ dht DHT;
 
 #define FANTOGGLEDELTA 1
 #define DEWPOINTDELTA 5
-#define DHTREADFREQUENCY 30000    // read once every 30 sec
+#define DHTREADFREQUENCY 5000    // read once every 30 sec
+
 #define DOORDHT 2
 #define REARDHT 3
 #define FRONTDHT 4
 
-#define FANSWITCHFREQUENCY 30000 // switch not more often than once every 30sec
+#define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
 #define FAN 5
 
 
@@ -38,6 +39,7 @@ const unsigned int dstport PROGMEM = 1234;
 #endif
 
 
+int status = 0;
 static uint32_t timerdht = 0;
 static uint32_t timerfan = 0;
 double doorhumidity;
@@ -152,7 +154,10 @@ void loop()
     timerdht = millis() + DHTREADFREQUENCY;
 
     // reading the DHTs
-    if ( DHT.read(DOORDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
+    int dhtstatus;
+    dhtstatus = DHT.read(DOORDHT);
+    Serial.print(dhtstatus);
+    if ( dhtstatus == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       doorhumidity    = DHT.humidity;
       doortemperature = DHT.temperature;
       doordewpoint    = dewPoint(doortemperature, doorhumidity);
@@ -170,7 +175,9 @@ void loop()
     printline("front", fronthumidity, fronttemperature, frontdewpoint);
 #endif
 
-    if ( DHT.read(REARDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
+    dhtstatus = DHT.read(REARDHT);
+    Serial.print(dhtstatus);
+    if ( dhtstatus == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       rearhumidity    = DHT.humidity;
       reartemperature = DHT.temperature;
       reardewpoint    = dewPoint(reartemperature, rearhumidity);
@@ -192,7 +199,7 @@ void loop()
   if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
     Serial.print("FAN ...");
     timerfan = millis() + FANSWITCHFREQUENCY;
-    if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
+    /* if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
        // turn on fan if dewpoint outside is < dewpoint inside - the delta 
        digitalWrite(FAN, ON);
        Serial.println(" ON");
@@ -201,6 +208,17 @@ void loop()
        digitalWrite(FAN, OFF);
        Serial.println(" OFF");
     }
+    */
+    if ( status == 1 ) {
+       Serial.print("toby on");
+       digitalWrite(FAN, ON);
+       status = 0;
+    } else {
+       Serial.print("toby off");
+       digitalWrite(FAN, OFF);
+       status = 1;
+    }
+    Serial.println(status);
   }
 
 }
