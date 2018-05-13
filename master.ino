@@ -2,12 +2,12 @@
 #define TRIPLESENSOR 0
 
 
-#include <dht.h>
 #if ETHERNET
 #include <SPI.h>
 #include <EtherCard.h>
 #endif
 
+#include <dht.h>
 dht DHT;
 
 #define OFF LOW
@@ -96,10 +96,10 @@ void printline(char *sensor, double hum, double temp, double dew) {
     Serial.print("\t");
     Serial.print(sensor);
     Serial.println(":");
-    Serial.print("\t\tHumidity (%): ");
-    Serial.print((float)hum, 2);
     Serial.print("\tTemperature (C): ");
     Serial.print((float)temp, 2);
+    Serial.print("\t\tHumidity (%): ");
+    Serial.print((float)hum, 2);
     Serial.print("\tDewPoint (C): ");
     Serial.println((float)dew, 2);
 }
@@ -162,7 +162,6 @@ void loop()
       doortemperature = DHT.temperature;
       doordewpoint    = dewPoint(doortemperature, doorhumidity);
     }
-
     printline("door", doorhumidity, doortemperature, doordewpoint);
 
 #if TRIPLESENSOR
