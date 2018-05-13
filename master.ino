@@ -1,4 +1,5 @@
-#define ETHERNET 1
+#define ETHERNET 0
+#define TRIPLESENSOR 0
 
 
 #include <dht.h>
@@ -15,12 +16,12 @@ dht DHT;
 
 #define FANTOGGLEDELTA 1
 #define DEWPOINTDELTA 5
-#define DHTREADFREQUENCY 20000    // read once every 20 sec
+#define DHTREADFREQUENCY 30000    // read once every 30 sec
 #define DOORDHT 2
 #define REARDHT 3
 #define FRONTDHT 4
 
-#define FANSWITCHFREQUENCY 120000 // switch not more often than once every 2 min
+#define FANSWITCHFREQUENCY 30000 // switch not more often than once every 30sec
 #define FAN 5
 
 
@@ -42,9 +43,11 @@ static uint32_t timerfan = 0;
 double doorhumidity;
 double doortemperature;
 double doordewpoint;
+#if TRIPLESENSOR
 double fronthumidity;
 double fronttemperature;
 double frontdewpoint;
+#endif
 double rearhumidity;
 double reartemperature;
 double reardewpoint;
@@ -154,19 +157,25 @@ void loop()
       doortemperature = DHT.temperature;
       doordewpoint    = dewPoint(doortemperature, doorhumidity);
     }
+
+    printline("door", doorhumidity, doortemperature, doordewpoint);
+
+#if TRIPLESENSOR
     if ( DHT.read(FRONTDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       fronthumidity    = DHT.humidity;
       fronttemperature = DHT.temperature;
       frontdewpoint    = dewPoint(fronttemperature, fronthumidity);
     }
+
+    printline("front", fronthumidity, fronttemperature, frontdewpoint);
+#endif
+
     if ( DHT.read(REARDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
       rearhumidity    = DHT.humidity;
       reartemperature = DHT.temperature;
       reardewpoint    = dewPoint(reartemperature, rearhumidity);
     }
 
-    printline("door", doorhumidity, doortemperature, doordewpoint);
-    printline("front", fronthumidity, fronttemperature, frontdewpoint);
     printline("rear", rearhumidity, reartemperature, reardewpoint);
 
 
