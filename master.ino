@@ -1,14 +1,5 @@
-#define ETHERNET 0
-#define TRIPLESENSOR 0
+#include <DHT.h>
 
-
-#if ETHERNET
-#include <SPI.h>
-#include <EtherCard.h>
-#endif
-
-#include <dht.h>
-dht DHT;
 
 #define OFF LOW
 #define ON HIGH
@@ -18,55 +9,31 @@ dht DHT;
 #define DEWPOINTDELTA 5
 #define DHTREADFREQUENCY 5000    // read once every 30 sec
 
-#define DOORDHT 2
-#define REARDHT 3
-#define FRONTDHT 4
+//#define DHTTYPE DHT11   // DHT 11
+//#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+//#define DHTTYPE DHT21   // DHT 21 (AM2301)
+#define OUTTYPE DHT22
+#define INTYPE DHT11
+
+#define OUTPIN 2
+#define INPIN 3
 
 #define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
 #define FAN 5
 
 
 
+float inhumidity;
+float intemperature;
+float indewpoint;
 
-#if ETHERNET
-byte Ethernet::buffer[500];
-static const byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0x31 };
-//static byte ip[] = {192, 168, 10, 200};
-//const byte dstip[] = {192, 168, 10, 2};
-const char destination[] PROGMEM = "loxone";
-const unsigned int srcport PROGMEM = 1234; 
-const unsigned int dstport PROGMEM = 1234; 
-#endif
-
-
-int status = 0;
-static uint32_t timerdht = 0;
-static uint32_t timerfan = 0;
-double doorhumidity;
-double doortemperature;
-double doordewpoint;
-#if TRIPLESENSOR
-double fronthumidity;
-double fronttemperature;
-double frontdewpoint;
-#endif
-double rearhumidity;
-double reartemperature;
-double reardewpoint;
+float outhumidity;
+float outtemperature;
+float outdewpoint;
 
 
 
-
-
-
-
-
-
-
-// dewPoint function NOAA
-// reference (1) : http://wahiduddin.net/calc/density_algorithms.htm
-// reference (2) : http://www.colorado.edu/geography/weather_station/Geog_site/about.htm
-double dewPoint(double celsius, double humidity)
+float dewPoint(float celsius, float humidity)
 {
   // (1) Saturation Vapor Pressure = ESGG(T)
   double RATIO = 373.15 / (273.15 + celsius);
@@ -87,126 +54,79 @@ double dewPoint(double celsius, double humidity)
 
 
 
+DHT outdht(OUTPIN, OUTTYPE);
+DHT indht(INPIN, INTYPE);
 
 
 
-
-
-void printline(char *sensor, double hum, double temp, double dew) {
-    Serial.print("\t");
-    Serial.print(sensor);
-    Serial.println(":");
-    Serial.print("\tTemperature (C): ");
-    Serial.print((float)temp, 2);
-    Serial.print("\t\tHumidity (%): ");
-    Serial.print((float)hum, 2);
-    Serial.print("\tDewPoint (C): ");
-    Serial.println((float)dew, 2);
-}
-
-
-
-
-
-
-
-
-void setup()
-{
+void setup() {
   Serial.begin(115200);
-  Serial.println("booting up...");
-  pinMode(FAN, OUTPUT);
+  Serial.println("fan-control");
 
-#if ETHERNET
-  Serial.println("init ethernet...");
-  if (ether.begin(sizeof Ethernet::buffer, mymac) == 0)
-    Serial.println(F("Failed to access Ethernet controller"));
-  if (!ether.dhcpSetup())
-    Serial.println(F("DHCP failed"));
-
-  ether.printIp("IP:  ", ether.myip);
-  ether.printIp("GW:  ", ether.gwip);
-  ether.printIp("DNS: ", ether.dnsip);
-
-  if (!ether.dnsLookup(destination))
-    Serial.println("DNS failed");
-
-  ether.printIp("SRV: ", ether.hisip);
-
-#endif
-
+  outdht.begin();
+  indht.begin();
 }
 
+void loop() {
+  delay(2000);
 
+  float humidityOut = outdht.readHumidity();
+  float tempOut = outdht.readTemperature();
 
-
-
-
-void loop()
-{
-
-#if ETHERNET
-  ether.packetLoop(ether.packetReceive());
-#endif
-
-  if ( millis() > timerdht ) {    // read DHT not more than once every DHTREADFREQUENCY
-    Serial.println("reading DHT...");
-    timerdht = millis() + DHTREADFREQUENCY;
-
-    // reading the DHTs
-    int dhtstatus;
-    dhtstatus = DHT.read(DOORDHT);
-    Serial.print(dhtstatus);
-    if ( dhtstatus == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
-      doorhumidity    = DHT.humidity;
-      doortemperature = DHT.temperature;
-      doordewpoint    = dewPoint(doortemperature, doorhumidity);
-    }
-    printline("door", doorhumidity, doortemperature, doordewpoint);
-
-#if TRIPLESENSOR
-    if ( DHT.read(FRONTDHT) == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
-      fronthumidity    = DHT.humidity;
-      fronttemperature = DHT.temperature;
-      frontdewpoint    = dewPoint(fronttemperature, fronthumidity);
-    }
-
-    printline("front", fronthumidity, fronttemperature, frontdewpoint);
-#endif
-
-    dhtstatus = DHT.read(REARDHT);
-    Serial.print(dhtstatus);
-    if ( dhtstatus == DHTLIB_OK ) {        // known return states:   DHTLIB_ERROR_CHECKSUM   DHTLIB_ERROR_TIMEOUT    DHTLIB_OK
-      rearhumidity    = DHT.humidity;
-      reartemperature = DHT.temperature;
-      reardewpoint    = dewPoint(reartemperature, rearhumidity);
-    }
-
-    printline("rear", rearhumidity, reartemperature, reardewpoint);
-
-
-#if ETHERNET
-    char msg[50];
-    sprintf(msg, "Humidity Front %.1f", rearhumidity);
-    Serial.println(msg);
-    ether.sendUdp(msg, sizeof(msg), srcport, ether.hisip, dstport);
-#endif
-
-
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(humidityOut) || isnan(tempOut)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
   }
 
-  if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
-    Serial.print("FAN ...");
-    timerfan = millis() + FANSWITCHFREQUENCY;
-    if ( doordewpoint < (reardewpoint - DEWPOINTDELTA - FANTOGGLEDELTA )) {
-       // turn on fan if dewpoint outside is < dewpoint inside - the delta 
-       digitalWrite(FAN, ON);
-       Serial.println(" ON");
-    } else if ( doordewpoint > (reardewpoint - DEWPOINTDELTA + FANTOGGLEDELTA ) ) {
-       // turn off fan
-       digitalWrite(FAN, OFF);
-       Serial.println(" OFF");
-    }
+  // Compute heat index in Celsius (isFahreheit = false)
+  float hiOut = outdht.computeHeatIndex(tempOut, humidityOut, false);
+  float dewOut = dewPoint(tempOut, humidityOut);
+
+
+  Serial.print("Humidity Out: ");
+  Serial.print(humidityOut);
+  Serial.print(" %\t");
+  Serial.print("Temperature Out: ");
+  Serial.print(tempOut);
+  Serial.print(" *C ");
+  Serial.print("DewPoint Out: ");
+  Serial.print(dewOut);
+  Serial.print(" *C ");
+  Serial.print("Heat index Out: ");
+  Serial.print(hiOut);
+  Serial.println(" *C");
+
+
+
+  float humidityIn = indht.readHumidity();
+  float tempIn = indht.readTemperature();
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(humidityIn) || isnan(tempIn)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
   }
+
+  // Compute heat index in Celsius (isFahreheit = false)
+  float hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
+  float dewIn = dewPoint(tempIn, humidityIn);
+
+
+  Serial.print("Humidity In: ");
+  Serial.print(humidityIn);
+  Serial.print(" %\t");
+  Serial.print("Temperature In: ");
+  Serial.print(tempIn);
+  Serial.print(" *C ");
+  Serial.print("DewPoint In: ");
+  Serial.print(dewIn);
+  Serial.print(" *C ");
+  Serial.print("Heat index In: ");
+  Serial.print(hiIn);
+  Serial.println(" *C");
+
+
+
 
 }
