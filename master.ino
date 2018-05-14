@@ -10,7 +10,8 @@
 //#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 //#define DHTTYPE DHT21   // DHT 21 (AM2301)
 #define OUTTYPE DHT22
-#define INTYPE DHT11
+#define INTYPE DHT22
+//#define INTYPE DHT11
 
 #define OUTPIN 2
 #define INPIN 3
@@ -57,6 +58,22 @@ DHT indht(INPIN, INTYPE);
 void setup() {
   Serial.begin(115200);
   Serial.println("fan-control");
+  Serial.print("Sensor Polling interval: ");
+  Serial.print(DHTREADFREQUENCY);
+  Serial.print("\tDewPointDelta: ");
+  Serial.print(DEWPOINTDELTA);
+  Serial.print("\tFanToggleDelta: ");
+  Serial.print(FANTOGGLEDELTA);
+  Serial.print("\tFanPin: ");
+  Serial.println(FANPIN);
+  Serial.print("DHT Sensor OUT: ");
+  Serial.print(OUTTYPE);
+  Serial.print("\tPin: ");
+  Serial.println(OUTPIN);
+  Serial.print("DHT Sensor  IN: ");
+  Serial.print(INTYPE);
+  Serial.print("\tPin: ");
+  Serial.println(INPIN);
 
   pinMode(FANPIN, OUTPUT);
   outdht.begin();
@@ -84,10 +101,10 @@ void loop() {
   Serial.print(" %\t");
   Serial.print("Temperature Out: ");
   Serial.print(tempOut);
-  Serial.print(" *C ");
+  Serial.print(" *C\t");
   Serial.print("DewPoint Out: ");
   Serial.print(dewOut);
-  Serial.print(" *C ");
+  Serial.print(" *C\t");
   Serial.print("Heat index Out: ");
   Serial.print(hiOut);
   Serial.println(" *C");
@@ -108,16 +125,16 @@ void loop() {
   float dewIn = dewPoint(tempIn, humidityIn);
 
 
-  Serial.print("Humidity In: ");
+  Serial.print("Humidity  In: ");
   Serial.print(humidityIn);
   Serial.print(" %\t");
-  Serial.print("Temperature In: ");
+  Serial.print("Temperature  In: ");
   Serial.print(tempIn);
-  Serial.print(" *C ");
-  Serial.print("DewPoint In: ");
+  Serial.print(" *C\t");
+  Serial.print("DewPoint  In: ");
   Serial.print(dewIn);
-  Serial.print(" *C ");
-  Serial.print("Heat index In: ");
+  Serial.print(" *C\t");
+  Serial.print("Heat index  In: ");
   Serial.print(hiIn);
   Serial.println(" *C");
 
