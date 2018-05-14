@@ -1,4 +1,7 @@
 #include "DHT.h"
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
 
 #define OFF LOW
 #define ON HIGH
@@ -24,6 +27,10 @@ uint32_t timerfan = 0;
 
 DHT outdht(OUTPIN, OUTTYPE);
 DHT indht(INPIN, INTYPE);
+
+
+//                    addr,en,rw,rs,d4,d5,d6,d7,bl,blpol
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 
 float dewPoint(float celsius, float humidity)
@@ -69,6 +76,33 @@ void setup() {
   pinMode(FANPIN, OUTPUT);
   outdht.begin();
   indht.begin();
+
+
+
+  // start LCD setup section
+  lcd.begin(16,2);   // initialize the lcd for 16 chars 2 lines, turn on backlight
+
+  // ------- Quick 3 blinks of backlight  -------------
+  for(int i = 0; i< 3; i++)
+  {
+    lcd.backlight();
+    delay(250);
+    lcd.noBacklight();
+    delay(250);
+  }
+  lcd.backlight(); // finish with backlight on  
+
+  //-------- Write characters on the display ------------------
+  // NOTE: Cursor Position: (CHAR, LINE) start at 0  
+  lcd.setCursor(0,0); //Start at character 4 on line 0
+  lcd.print("HoiHoi");
+  delay(1000);
+  lcd.setCursor(0,1);
+  lcd.print("nor gian mor mol schaugn...");
+  delay(8000);  
+
+  // Wait and then tell user they can start the Serial Monitor and type in characters to
+  // Display. (Set Serial Monitor option to "No Line Ending")
 }
 
 
@@ -87,6 +121,18 @@ void loop() {
   // Compute heat index in Celsius (isFahreheit = false)
   float hiOut = outdht.computeHeatIndex(tempOut, humidityOut, false);
   float dewOut = dewPoint(tempOut, humidityOut);
+
+
+  lcd.clear();
+
+  lcd.setCursor(0,0); //Start at character 0 on line 0
+  lcd.print("O:H");
+  lcd.print(humidityOut);
+  lcd.print(" T");
+  lcd.print(tempOut);
+  lcd.print(" D");
+  lcd.print(dewOut);
+
 
 
   Serial.print("Humidity Out: ");
@@ -117,6 +163,13 @@ void loop() {
   float hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
   float dewIn = dewPoint(tempIn, humidityIn);
 
+  lcd.setCursor(0,1); //Start at character 0 on line 0
+  lcd.print("I:H");
+  lcd.print(humidityIn);
+  lcd.print(" T");
+  lcd.print(tempIn);
+  lcd.print(" D");
+  lcd.print(dewIn);
 
   Serial.print("Humidity  In: ");
   Serial.print(humidityIn);
