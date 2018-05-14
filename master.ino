@@ -58,6 +58,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("fan-control");
 
+  pinMode(FANPIN, OUTPUT);
   outdht.begin();
   indht.begin();
 }
