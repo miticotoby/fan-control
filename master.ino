@@ -1,13 +1,10 @@
-#include <DHT.h>
+#include "DHT.h"
 
 
 #define OFF LOW
 #define ON HIGH
 
 
-#define FANTOGGLEDELTA 1
-#define DEWPOINTDELTA 5
-#define DHTREADFREQUENCY 5000    // read once every 30 sec
 
 //#define DHTTYPE DHT11   // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
@@ -18,19 +15,17 @@
 #define OUTPIN 2
 #define INPIN 3
 
+
+//Fan stuff
 #define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
-#define FAN 5
+#define FANPIN 5
+
+#define FANTOGGLEDELTA 2
+#define DEWPOINTDELTA 5
+#define DHTREADFREQUENCY 5000    // read once every 30 sec
 
 
-
-float inhumidity;
-float intemperature;
-float indewpoint;
-
-float outhumidity;
-float outtemperature;
-float outdewpoint;
-
+static uint32_t timerfan = 0;
 
 
 float dewPoint(float celsius, float humidity)
@@ -68,7 +63,6 @@ void setup() {
 }
 
 void loop() {
-  delay(2000);
 
   float humidityOut = outdht.readHumidity();
   float tempOut = outdht.readTemperature();
@@ -128,5 +122,21 @@ void loop() {
 
 
 
+  if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
+    Serial.print("FAN ...");
+    timerfan = millis() + FANSWITCHFREQUENCY;
+    if ( dewOut < (dewIn - DEWPOINTDELTA - FANTOGGLEDELTA )) {
+       // turn on fan if dewpoint outside is < dewpoint inside - the delta 
+       digitalWrite(FANPIN, ON);
+       Serial.println(" ON");
+    } else if ( dewOut > (dewIn - DEWPOINTDELTA + FANTOGGLEDELTA ) ) {
+       // turn off fan
+       digitalWrite(FANPIN, OFF);
+       Serial.println(" OFF");
+    }
+  }
+
+
+  delay(DHTREADFREQUENCY);
 
 }
