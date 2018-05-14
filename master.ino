@@ -1,32 +1,29 @@
 #include "DHT.h"
 
-
 #define OFF LOW
 #define ON HIGH
 
 
-
-//#define DHTTYPE DHT11   // DHT 11
-//#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
-//#define DHTTYPE DHT21   // DHT 21 (AM2301)
+//DHT type used: DHT11, DHT21 (AM2301), DHT22  (AM2302, AM2321)
 #define OUTTYPE DHT22
 #define INTYPE DHT22
-//#define INTYPE DHT11
-
 #define OUTPIN 2
 #define INPIN 3
 
 
 //Fan stuff
-#define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
 #define FANPIN 5
-
-#define FANTOGGLEDELTA 2
-#define DEWPOINTDELTA 5
+#define FANTOGGLEDELTA 1
+#define DEWPOINTDELTA 6
 #define DHTREADFREQUENCY 5000    // read once every 30 sec
+#define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
 
 
-static uint32_t timerfan = 0;
+
+uint32_t timerfan = 0;
+
+DHT outdht(OUTPIN, OUTTYPE);
+DHT indht(INPIN, INTYPE);
 
 
 float dewPoint(float celsius, float humidity)
@@ -46,12 +43,6 @@ float dewPoint(float celsius, float humidity)
   double T = log(VP/0.61078);   // temp var
   return (241.88 * T) / (17.558 - T);
 }
-
-
-
-
-DHT outdht(OUTPIN, OUTTYPE);
-DHT indht(INPIN, INTYPE);
 
 
 
@@ -79,6 +70,8 @@ void setup() {
   outdht.begin();
   indht.begin();
 }
+
+
 
 void loop() {
 
