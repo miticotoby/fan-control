@@ -94,21 +94,21 @@ void printDhtLCD() {
 
   // outdoor values
   lcd.setCursor(0,0); //Start at character 0 on line 0
-  lcd.print("O:H");
-  lcd.print(humidityOut, 0);
-  lcd.print(" T");
-  lcd.print(tempOut, 0);
-  lcd.print(" D");
-  lcd.print(dewOut, 0);
+  lcd.print("Out: Hum:");
+  lcd.print(humidityOut, 1);
+  lcd.print("% Temp:");
+  lcd.print(tempOut, 1);
+  lcd.print(" Dew:");
+  lcd.print(dewOut, 1);
 
   // indoor values
   lcd.setCursor(0,1); //Start at character 0 on line 0
-  lcd.print("I:H");
-  lcd.print(humidityIn, 0);
-  lcd.print(" T");
-  lcd.print(tempIn, 0);
-  lcd.print(" D");
-  lcd.print(dewIn, 0);
+  lcd.print("In:  Hum:");
+  lcd.print(humidityIn, 1);
+  lcd.print("% Temp:");
+  lcd.print(tempIn, 1);
+  lcd.print(" Dew:");
+  lcd.print(dewIn, 1);
 }
 
 
@@ -151,6 +151,7 @@ void setup() {
   lcd.setCursor(0,1);
   lcd.print("debug on serial...");
   delay(2000);
+  lcd.clear();
 
 }
 
@@ -158,6 +159,7 @@ void setup() {
 
 
 void loop() {
+  if ( millis() % 2000 == 0 ) lcd.scrollDisplayLeft();
 
 
   if ( millis() > timerdht ) {    // switch fan not more than once every FANSWITCHFREQUENCY
@@ -193,10 +195,7 @@ void loop() {
 
 
 
-  /////////////////////////////////////////
   //// deciding what to do with the FAN
-  /////////////////////////////////////////
-
   if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
     Serial.print("FAN ...");
     timerfan = millis() + FANSWITCHFREQUENCY;
@@ -212,4 +211,6 @@ void loop() {
        Serial.println(" unchanged due to flap protection");
     }
   }
+
+
 }
