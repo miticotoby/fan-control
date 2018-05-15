@@ -1,0 +1,3 @@
+[submodule "libs/LiquidCrystal"]
+	path = libs/LiquidCrystal
+	url = git@github.com:arduino-libraries/LiquidCrystal.git
