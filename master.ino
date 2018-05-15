@@ -23,11 +23,11 @@
 
 
 uint32_t timerfan = 0;
+uint32_t timerdht = 0;
 bool fanstatus = false;
 
 DHT outdht(OUTPIN, OUTTYPE);
 DHT indht(INPIN, INTYPE);
-
 
 
 const int backlight = 6;
@@ -35,29 +35,10 @@ const int rs = 8, en = 7, d4 = 12, d5 = 11, d6 = 10, d7 = 9;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
-
-float dewPoint(float celsius, float humidity)
-{
-  // (1) Saturation Vapor Pressure = ESGG(T)
-  double RATIO = 373.15 / (273.15 + celsius);
-  double RHS = -7.90298 * (RATIO - 1);
-  RHS += 5.02808 * log10(RATIO);
-  RHS += -1.3816e-7 * (pow(10, (11.344 * (1 - 1/RATIO ))) - 1) ;
-  RHS += 8.1328e-3 * (pow(10, (-3.49149 * (RATIO - 1))) - 1) ;
-  RHS += log10(1013.246);
-
-        // factor -3 is to adjust units - Vapor Pressure SVP * humidity
-  double VP = pow(10, RHS - 3) * humidity;
-
-        // (2) DEWPOINT = F(Vapor Pressure)
-  double T = log(VP/0.61078);   // temp var
-  return (241.88 * T) / (17.558 - T);
-}
+float humidityOut, humidityIn, tempOut, tempIn, hiOut, hiIn, dewOut, dewIn;
 
 
-
-void setup() {
-  Serial.begin(115200);
+void printConstants() {
   Serial.println("fan-control");
   Serial.print("Sensor Polling interval: ");
   Serial.print(DHTREADFREQUENCY);
@@ -75,91 +56,9 @@ void setup() {
   Serial.print(INTYPE);
   Serial.print("\tPin: ");
   Serial.println(INPIN);
-
-  pinMode(FANPIN, OUTPUT);
-  outdht.begin();
-  indht.begin();
-
-  // start LCD setup section
-  pinMode(backlight, OUTPUT);
-  digitalWrite(backlight, ON);
-
-  lcd.begin(16,2);   // initialize the lcd for 16 chars 2 lines, turn on backlight
-  lcd.print("HoiHoi");
-  // NOTE: Cursor Position: (CHAR, LINE) start at 0  
-  lcd.setCursor(0,1);
-  lcd.print("nor gian mor mol schaugn...");
-  delay(2000);
-
 }
 
-
-
-void loop() {
-  ////////////////////////////////
-  //// Reading Outdoor sensor
-  ////////////////////////////////
-  float humidityOut = outdht.readHumidity();
-  float tempOut = outdht.readTemperature();
-
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(humidityOut) || isnan(tempOut)) {
-    Serial.println("Failed to read from DHT sensor!");
-    return;
-  }
-
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hiOut = outdht.computeHeatIndex(tempOut, humidityOut, false);
-  float dewOut = dewPoint(tempOut, humidityOut);
-
-
-
-  ////////////////////////////////
-  //// Reading Indoor sensor
-  ////////////////////////////////
-  float humidityIn = indht.readHumidity();
-  float tempIn = indht.readTemperature();
-
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(humidityIn) || isnan(tempIn)) {
-    Serial.println("Failed to read from DHT sensor!");
-    return;
-  }
-
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
-  float dewIn = dewPoint(tempIn, humidityIn);
-
-
-  ///////////////////////////////////
-  //// printing it all on the LCD
-  ///////////////////////////////////
-
-  //lcd.clear();
-
-  // outdoor values
-  lcd.setCursor(0,0); //Start at character 0 on line 0
-  lcd.print("O:H");
-  lcd.print(humidityOut);
-  lcd.print(" T");
-  lcd.print(tempOut);
-  lcd.print(" D");
-  lcd.print(dewOut);
-
-  // indoor values
-  lcd.setCursor(0,1); //Start at character 0 on line 0
-  lcd.print("I:H");
-  lcd.print(humidityIn);
-  lcd.print(" T");
-  lcd.print(tempIn);
-  lcd.print(" D");
-  lcd.print(dewIn);
-
-
-  ///////////////////////////////////
-  //// printing it all on the Serial
-  ///////////////////////////////////
-
+void printDhtSerial() {
   // outdoor values
   Serial.print("Humidity Out: ");
   Serial.print(humidityOut);
@@ -187,6 +86,110 @@ void loop() {
   Serial.print("Heat index  In: ");
   Serial.print(hiIn);
   Serial.println(" *C");
+}
+
+
+void printDhtLCD() {
+  //lcd.clear();
+
+  // outdoor values
+  lcd.setCursor(0,0); //Start at character 0 on line 0
+  lcd.print("O:H");
+  lcd.print(humidityOut, 0);
+  lcd.print(" T");
+  lcd.print(tempOut, 0);
+  lcd.print(" D");
+  lcd.print(dewOut, 0);
+
+  // indoor values
+  lcd.setCursor(0,1); //Start at character 0 on line 0
+  lcd.print("I:H");
+  lcd.print(humidityIn, 0);
+  lcd.print(" T");
+  lcd.print(tempIn, 0);
+  lcd.print(" D");
+  lcd.print(dewIn, 0);
+}
+
+
+
+float dewPoint(float celsius, float humidity)
+{
+  // (1) Saturation Vapor Pressure = ESGG(T)
+  double RATIO = 373.15 / (273.15 + celsius);
+  double RHS = -7.90298 * (RATIO - 1);
+  RHS += 5.02808 * log10(RATIO);
+  RHS += -1.3816e-7 * (pow(10, (11.344 * (1 - 1/RATIO ))) - 1) ;
+  RHS += 8.1328e-3 * (pow(10, (-3.49149 * (RATIO - 1))) - 1) ;
+  RHS += log10(1013.246);
+
+        // factor -3 is to adjust units - Vapor Pressure SVP * humidity
+  double VP = pow(10, RHS - 3) * humidity;
+
+        // (2) DEWPOINT = F(Vapor Pressure)
+  double T = log(VP/0.61078);   // temp var
+  return (241.88 * T) / (17.558 - T);
+}
+
+
+
+void setup() {
+  Serial.begin(115200);
+  printConstants();
+
+  // init sensors and peripherials
+  outdht.begin();
+  indht.begin();
+  pinMode(FANPIN, OUTPUT);
+
+  // init LCD setup section
+  pinMode(backlight, OUTPUT);
+  digitalWrite(backlight, ON);
+
+  lcd.begin(16,2);   // initialize the lcd for 16 chars 2 lines, turn on backlight
+  lcd.print("HoiHoi");
+  lcd.setCursor(0,1);
+  lcd.print("debug on serial...");
+  delay(2000);
+
+}
+
+
+
+
+void loop() {
+
+
+  if ( millis() > timerdht ) {    // switch fan not more than once every FANSWITCHFREQUENCY
+    Serial.print("DHT ... ");
+
+    //// Read sensors
+    humidityOut = outdht.readHumidity();
+    tempOut = outdht.readTemperature();
+    humidityIn = indht.readHumidity();
+    tempIn = indht.readTemperature();
+  
+    // Check if any reads failed and exit early (to try again).
+    if (isnan(humidityOut) || isnan(tempOut)) {
+      Serial.println("Failed to read Outdoor sensor!");
+      return;
+    } else if (isnan(humidityIn) || isnan(tempIn)) {
+      Serial.println("Failed to read Indoor sensor!");
+      return;
+    } else {
+      Serial.println("OK");
+      timerdht = millis() + DHTREADFREQUENCY;
+      // Compute heat index and dewpoint
+      dewOut = dewPoint(tempOut, humidityOut);
+      dewIn = dewPoint(tempIn, humidityIn);
+      hiOut = outdht.computeHeatIndex(tempOut, humidityOut, false);
+      hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
+      printDhtSerial();   //// printing it all on the Serial if we actually got values
+      printDhtLCD();      //// print new values on LCD
+    }
+  
+  }
+
 
 
 
@@ -209,8 +212,4 @@ void loop() {
        Serial.println(" unchanged due to flap protection");
     }
   }
-
-
-  delay(DHTREADFREQUENCY);
-
 }
