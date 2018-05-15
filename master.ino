@@ -1,6 +1,5 @@
 #include "DHT.h"
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal.h>
 
 
 #define OFF LOW
@@ -29,8 +28,13 @@ DHT outdht(OUTPIN, OUTTYPE);
 DHT indht(INPIN, INTYPE);
 
 
-//                    addr,en,rw,rs,d4,d5,d6,d7,bl,blpol
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+
+const int backlight = 6;
+const int rs = 8, en = 7, d4 = 12, d5 = 11, d6 = 10, d7 = 9;
+
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+
 
 
 float dewPoint(float celsius, float humidity)
@@ -80,24 +84,25 @@ void setup() {
 
 
   // start LCD setup section
+  pinMode(backlight, OUTPUT);
   lcd.begin(16,2);   // initialize the lcd for 16 chars 2 lines, turn on backlight
 
   // ------- Quick 3 blinks of backlight  -------------
   for(int i = 0; i< 3; i++)
   {
-    lcd.backlight();
+    digitalWrite(backlight, ON);
     delay(250);
-    lcd.noBacklight();
+    digitalWrite(backlight, OFF);
     delay(250);
   }
-  lcd.backlight(); // finish with backlight on  
+  digitalWrite(backlight, ON);
 
   //-------- Write characters on the display ------------------
   // NOTE: Cursor Position: (CHAR, LINE) start at 0  
-  lcd.setCursor(0,0); //Start at character 4 on line 0
+  //lcd.setCursor(0,0); //Start at character 4 on line 0
   lcd.print("HoiHoi");
   delay(1000);
-  lcd.setCursor(0,1);
+  //lcd.setCursor(0,1);
   lcd.print("nor gian mor mol schaugn...");
   delay(8000);  
 
