@@ -16,13 +16,14 @@
 //Fan stuff
 #define FANPIN 5
 #define FANTOGGLEDELTA 1
-#define DEWPOINTDELTA 6
+#define DEWPOINTDELTA 4
 #define DHTREADFREQUENCY 5000    // read once every 30 sec
 #define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
 
 
 
 uint32_t timerfan = 0;
+bool fanstatus = false;
 
 DHT outdht(OUTPIN, OUTTYPE);
 DHT indht(INPIN, INTYPE);
@@ -31,9 +32,7 @@ DHT indht(INPIN, INTYPE);
 
 const int backlight = 6;
 const int rs = 8, en = 7, d4 = 12, d5 = 11, d6 = 10, d7 = 9;
-
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-
 
 
 
@@ -81,39 +80,25 @@ void setup() {
   outdht.begin();
   indht.begin();
 
-
-
   // start LCD setup section
   pinMode(backlight, OUTPUT);
-  lcd.begin(16,2);   // initialize the lcd for 16 chars 2 lines, turn on backlight
-
-  // ------- Quick 3 blinks of backlight  -------------
-  for(int i = 0; i< 3; i++)
-  {
-    digitalWrite(backlight, ON);
-    delay(250);
-    digitalWrite(backlight, OFF);
-    delay(250);
-  }
   digitalWrite(backlight, ON);
 
-  //-------- Write characters on the display ------------------
-  // NOTE: Cursor Position: (CHAR, LINE) start at 0  
-  //lcd.setCursor(0,0); //Start at character 4 on line 0
+  lcd.begin(16,2);   // initialize the lcd for 16 chars 2 lines, turn on backlight
   lcd.print("HoiHoi");
-  delay(1000);
-  //lcd.setCursor(0,1);
+  // NOTE: Cursor Position: (CHAR, LINE) start at 0  
+  lcd.setCursor(0,1);
   lcd.print("nor gian mor mol schaugn...");
-  delay(8000);  
+  delay(2000);
 
-  // Wait and then tell user they can start the Serial Monitor and type in characters to
-  // Display. (Set Serial Monitor option to "No Line Ending")
 }
 
 
 
 void loop() {
-
+  ////////////////////////////////
+  //// Reading Outdoor sensor
+  ////////////////////////////////
   float humidityOut = outdht.readHumidity();
   float tempOut = outdht.readTemperature();
 
@@ -128,33 +113,10 @@ void loop() {
   float dewOut = dewPoint(tempOut, humidityOut);
 
 
-  lcd.clear();
 
-  lcd.setCursor(0,0); //Start at character 0 on line 0
-  lcd.print("O:H");
-  lcd.print(humidityOut);
-  lcd.print(" T");
-  lcd.print(tempOut);
-  lcd.print(" D");
-  lcd.print(dewOut);
-
-
-
-  Serial.print("Humidity Out: ");
-  Serial.print(humidityOut);
-  Serial.print(" %\t");
-  Serial.print("Temperature Out: ");
-  Serial.print(tempOut);
-  Serial.print(" *C\t");
-  Serial.print("DewPoint Out: ");
-  Serial.print(dewOut);
-  Serial.print(" *C\t");
-  Serial.print("Heat index Out: ");
-  Serial.print(hiOut);
-  Serial.println(" *C");
-
-
-
+  ////////////////////////////////
+  //// Reading Indoor sensor
+  ////////////////////////////////
   float humidityIn = indht.readHumidity();
   float tempIn = indht.readTemperature();
 
@@ -168,6 +130,23 @@ void loop() {
   float hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
   float dewIn = dewPoint(tempIn, humidityIn);
 
+
+  ///////////////////////////////////
+  //// printing it all on the LCD
+  ///////////////////////////////////
+
+  //lcd.clear();
+
+  // outdoor values
+  lcd.setCursor(0,0); //Start at character 0 on line 0
+  lcd.print("O:H");
+  lcd.print(humidityOut);
+  lcd.print(" T");
+  lcd.print(tempOut);
+  lcd.print(" D");
+  lcd.print(dewOut);
+
+  // indoor values
   lcd.setCursor(0,1); //Start at character 0 on line 0
   lcd.print("I:H");
   lcd.print(humidityIn);
@@ -176,6 +155,26 @@ void loop() {
   lcd.print(" D");
   lcd.print(dewIn);
 
+
+  ///////////////////////////////////
+  //// printing it all on the Serial
+  ///////////////////////////////////
+
+  // outdoor values
+  Serial.print("Humidity Out: ");
+  Serial.print(humidityOut);
+  Serial.print(" %\t");
+  Serial.print("Temperature Out: ");
+  Serial.print(tempOut);
+  Serial.print(" *C\t");
+  Serial.print("DewPoint Out: ");
+  Serial.print(dewOut);
+  Serial.print(" *C\t");
+  Serial.print("Heat index Out: ");
+  Serial.print(hiOut);
+  Serial.println(" *C");
+
+  // indoor values
   Serial.print("Humidity  In: ");
   Serial.print(humidityIn);
   Serial.print(" %\t");
@@ -191,6 +190,10 @@ void loop() {
 
 
 
+  /////////////////////////////////////////
+  //// deciding what to do with the FAN
+  /////////////////////////////////////////
+
   if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
     Serial.print("FAN ...");
     timerfan = millis() + FANSWITCHFREQUENCY;
@@ -202,6 +205,8 @@ void loop() {
        // turn off fan
        digitalWrite(FANPIN, OFF);
        Serial.println(" OFF");
+    } else {
+       Serial.println(" unchanged due to flap protection");
     }
   }
 
