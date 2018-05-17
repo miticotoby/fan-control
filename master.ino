@@ -17,8 +17,8 @@
 #define FANPIN 5
 #define FANTOGGLEDELTA 1
 #define DEWPOINTDELTA 4
-#define DHTREADFREQUENCY 5000    // read once every 30 sec
-#define FANSWITCHFREQUENCY 5000 // switch not more often than once every 30sec
+#define DHTREADFREQUENCY 15000    // read once every 30 sec
+#define FANSWITCHFREQUENCY 15000 // switch not more often than once every 30sec
 
 
 
