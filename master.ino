@@ -6,7 +6,7 @@
 #define ON HIGH
 
 
-//DHT type used: DHT11, DHT21 (AM2301), DHT22  (AM2302, AM2321)
+//DHT types supported:  DHT11       DHT21 (AM2301)     DHT22  (AM2302, AM2321)
 #define OUTTYPE DHT22
 #define INTYPE DHT22
 #define OUTPIN 2
@@ -36,6 +36,10 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
 float humidityOut, humidityIn, tempOut, tempIn, hiOut, hiIn, dewOut, dewIn;
+
+// Calibrate sensors. some seem to be off quiet a bit
+float humidityOutOffset = 15.0;
+float humidityInOffset = 0.0;
 
 
 void printConstants() {
@@ -159,7 +163,7 @@ void setup() {
 
 
 void loop() {
-  if ( millis() % 2000 == 0 ) lcd.scrollDisplayLeft();
+  if ( millis() % 1500 == 0 ) lcd.scrollDisplayLeft();
 
 
   if ( millis() > timerdht ) {    // switch fan not more than once every FANSWITCHFREQUENCY
@@ -170,7 +174,7 @@ void loop() {
     tempOut = outdht.readTemperature();
     humidityIn = indht.readHumidity();
     tempIn = indht.readTemperature();
-  
+
     // Check if any reads failed and exit early (to try again).
     if (isnan(humidityOut) || isnan(tempOut)) {
       Serial.println("Failed to read Outdoor sensor!");
@@ -181,11 +185,17 @@ void loop() {
     } else {
       Serial.println("OK");
       timerdht = millis() + DHTREADFREQUENCY;
+
+      // Adjust values by constant
+      humidityOut =+ humidityOutOffset;
+      humidityIn =+ humidityInOffset;
+
       // Compute heat index and dewpoint
       dewOut = dewPoint(tempOut, humidityOut);
       dewIn = dewPoint(tempIn, humidityIn);
       hiOut = outdht.computeHeatIndex(tempOut, humidityOut, false);
       hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
+
       printDhtSerial();   //// printing it all on the Serial if we actually got values
       printDhtLCD();      //// print new values on LCD
     }
