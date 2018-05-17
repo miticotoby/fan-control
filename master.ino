@@ -163,7 +163,9 @@ void setup() {
 
 
 void loop() {
-  if ( millis() % 1500 == 0 ) lcd.scrollDisplayLeft();
+  delay(1000);
+  lcd.scrollDisplayLeft();
+  //if ( millis() % 1500 == 0 ) lcd.scrollDisplayLeft();
 
 
   if ( millis() > timerdht ) {    // switch fan not more than once every FANSWITCHFREQUENCY
