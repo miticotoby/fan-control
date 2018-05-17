@@ -187,8 +187,8 @@ void loop() {
       timerdht = millis() + DHTREADFREQUENCY;
 
       // Adjust values by constant
-      humidityOut =+ humidityOutOffset;
-      humidityIn =+ humidityInOffset;
+      humidityOut += humidityOutOffset;
+      humidityIn += humidityInOffset;
 
       // Compute heat index and dewpoint
       dewOut = dewPoint(tempOut, humidityOut);
