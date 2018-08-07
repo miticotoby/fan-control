@@ -42,6 +42,48 @@ float humidityOutOffset = 15.0;
 float humidityInOffset = 0.0;
 
 
+
+// define crap for ADC converter to read buttons
+#define DEBUGBUTTONS    // by defining this we'll get debug serial output for button values
+
+
+struct button {
+  int id;
+  int low;  //low threshold on the A0 input
+  int high; //high threshold on the A0 input
+};
+
+constexpr struct button b1 { 1, 1024, 1024 };
+constexpr struct button b2 { 2,  950,  965 };
+constexpr struct button b3 { 3,  835,  855 };
+constexpr struct button b4 { 4,  655,  685 };
+constexpr struct button b5 { 5,  500,  535 };
+constexpr struct button b6 { 6,  465,  485 };
+constexpr struct button b7 { 7,  350,  380 };
+constexpr struct button b8 { 8,  145,  160 };
+
+// Button debounce and ADC converting variables
+int timer = 500;
+int reading;
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+int tmpButtonState = LOW;    // the current reading from the input pin
+unsigned long lastButtonRead = 0;
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned int debounceDelay = 50;    // the debounce time; increase if the output flickers
+unsigned int analogReadDelay = 20;
+
+bool b1state = OFF;
+bool b2state = OFF;
+bool b3state = OFF;
+bool b4state = OFF;
+bool b5state = OFF;
+bool b6state = OFF;
+bool b7state = OFF;
+bool b8state = OFF;
+
+
+
 void printConstants() {
   Serial.println("fan-control");
   Serial.print("Sensor Polling interval: ");
@@ -224,5 +266,51 @@ void loop() {
     }
   }
 
+
+
+
+  if ((millis() - lastButtonRead) > analogReadDelay ) {
+    lastButtonRead = millis();
+
+    reading = analogRead(A0);
+    //Serial.println(reading);
+
+    if      (reading>=b1.low && reading<=b1.high) tmpButtonState = b1.id;       //Read switch 1
+    else if (reading>=b2.low && reading<=b2.high) tmpButtonState = b2.id;       //Read switch 2
+    else if (reading>=b3.low && reading<=b3.high) tmpButtonState = b3.id;       //Read switch 3
+    else if (reading>=b4.low && reading<=b4.high) tmpButtonState = b4.id;       //Read switch 4
+    else if (reading>=b5.low && reading<=b5.high) tmpButtonState = b5.id;       //Read switch 5
+    else if (reading>=b6.low && reading<=b6.high) tmpButtonState = b6.id;       //Read switch 6
+    else if (reading>=b7.low && reading<=b7.high) tmpButtonState = b7.id;       //Read switch 7
+    else if (reading>=b8.low && reading<=b8.high) tmpButtonState = b8.id;       //Read switch 8
+    else    tmpButtonState = LOW;                                               //No button is pressed;
+
+    if (tmpButtonState != lastButtonState) {
+      lastDebounceTime = millis();
+    }
+
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+      buttonState = tmpButtonState;
+    }
+    lastButtonState = tmpButtonState;
+
+
+    switch(buttonState){
+      case LOW:
+        break;
+      case b1.id:
+        b1state = !b1state;
+        break;
+    }
+
+#ifdef DEBUGBUTTONS
+    if ( reading > 100 ) {
+      char buffer[100];
+      sprintf(buffer, "reading %d\tbutton: %d\n", reading, buttonState);
+      Serial.print(buffer);
+    }
+#endif
+
+  }
 
 }
