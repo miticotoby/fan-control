@@ -215,14 +215,6 @@ void loop() {
   if ( millis() > timerfan )  {    // switch fan not more than once every FANSWITCHFREQUENCY
     timerfan = millis() + FANSWITCHFREQUENCY;
 
-    if ( b1state ) {
-       fanstate = !fanstate;
-       b1state = false;
-    }
-    if ( b2state ) {
-       manualmode = !manualmode;
-       b2state = false;
-    }
     if ( !manualmode ) {
        fanstate = fanauto;
     }
@@ -319,6 +311,14 @@ void loop() {
 
     switch(buttonState){
       case LOW:
+        if ( b1state ) {
+           fanstate = !fanstate;
+           b1state = false;
+        }
+        if ( b2state ) {
+           manualmode = !manualmode;
+           b2state = false;
+        }
         break;
       case b1.id:
         b1state = true;
