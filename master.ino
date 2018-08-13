@@ -20,10 +20,13 @@
 #define DHTREADFREQUENCY 15000    // read once every 30 sec
 #define FANSWITCHFREQUENCY 15000 // switch not more often than once every 30sec
 
+#define LCDREFRESH 1000
+
 
 
 uint32_t timerfan = 0;
 uint32_t timerdht = 0;
+uint32_t timerlcd = 0;
 bool fanstatus = false;
 
 DHT outdht(OUTPIN, OUTTYPE);
@@ -53,14 +56,10 @@ struct button {
   int high; //high threshold on the A0 input
 };
 
-constexpr struct button b1 { 1, 1024, 1024 };
-constexpr struct button b2 { 2,  950,  965 };
-constexpr struct button b3 { 3,  835,  855 };
-constexpr struct button b4 { 4,  655,  685 };
-constexpr struct button b5 { 5,  500,  535 };
-constexpr struct button b6 { 6,  465,  485 };
-constexpr struct button b7 { 7,  350,  380 };
-constexpr struct button b8 { 8,  145,  160 };
+constexpr struct button b1 { 1,  720,  730 };  // select
+constexpr struct button b2 { 2,  480,  500 };  // left
+constexpr struct button b3 { 3,  145,  155 };  // up
+constexpr struct button b4 { 4,  315,  330 };  // down
 
 // Button debounce and ADC converting variables
 int timer = 500;
@@ -77,10 +76,6 @@ bool b1state = OFF;
 bool b2state = OFF;
 bool b3state = OFF;
 bool b4state = OFF;
-bool b5state = OFF;
-bool b6state = OFF;
-bool b7state = OFF;
-bool b8state = OFF;
 
 
 
@@ -205,9 +200,10 @@ void setup() {
 
 
 void loop() {
-  delay(1000);
-  lcd.scrollDisplayLeft();
-  //if ( millis() % 1500 == 0 ) lcd.scrollDisplayLeft();
+  if ( millis() > timerlcd ) {
+    lcd.scrollDisplayLeft();
+    timerlcd = millis() + LCDREFRESH;
+  }
 
 
   if ( millis() > timerdht ) {    // switch fan not more than once every FANSWITCHFREQUENCY
@@ -279,10 +275,6 @@ void loop() {
     else if (reading>=b2.low && reading<=b2.high) tmpButtonState = b2.id;       //Read switch 2
     else if (reading>=b3.low && reading<=b3.high) tmpButtonState = b3.id;       //Read switch 3
     else if (reading>=b4.low && reading<=b4.high) tmpButtonState = b4.id;       //Read switch 4
-    else if (reading>=b5.low && reading<=b5.high) tmpButtonState = b5.id;       //Read switch 5
-    else if (reading>=b6.low && reading<=b6.high) tmpButtonState = b6.id;       //Read switch 6
-    else if (reading>=b7.low && reading<=b7.high) tmpButtonState = b7.id;       //Read switch 7
-    else if (reading>=b8.low && reading<=b8.high) tmpButtonState = b8.id;       //Read switch 8
     else    tmpButtonState = LOW;                                               //No button is pressed;
 
     if (tmpButtonState != lastButtonState) {
@@ -306,7 +298,7 @@ void loop() {
 #ifdef DEBUGBUTTONS
     if ( reading > 100 ) {
       char buffer[100];
-      sprintf(buffer, "reading %d\tbutton: %d\n", reading, buttonState);
+      sprintf(buffer, "reading %d\tbutton: %d\r\n", reading, buttonState);
       Serial.print(buffer);
     }
 #endif
