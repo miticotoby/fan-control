@@ -49,7 +49,7 @@ float humidityInOffset = 0.0;
 
 
 // define crap for ADC converter to read buttons
-#define DEBUGBUTTONS    // by defining this we'll get debug serial output for button values
+//#define DEBUGBUTTONS    // by defining this we'll get debug serial output for button values
 
 
 struct button {
