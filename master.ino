@@ -18,13 +18,18 @@
 #define FANTOGGLEDELTA 1
 #define DEWPOINTDELTA 4
 #define DHTREADFREQUENCY 15000    // read once every 30 sec
-#define FANSWITCHFREQUENCY 15000 // switch not more often than once every 30sec
+#define FANSWITCHFREQUENCY 500 // switch not more often than once every 30sec
+
+#define LCDREFRESH 500
 
 
 
 uint32_t timerfan = 0;
 uint32_t timerdht = 0;
-bool fanstatus = false;
+uint32_t timerlcd = 0;
+bool fanauto = OFF;
+bool fanstate = OFF;
+bool manualmode = false;
 
 DHT outdht(OUTPIN, OUTTYPE);
 DHT indht(INPIN, INTYPE);
@@ -40,6 +45,42 @@ float humidityOut, humidityIn, tempOut, tempIn, hiOut, hiIn, dewOut, dewIn;
 // Calibrate sensors. some seem to be off quiet a bit
 float humidityOutOffset = 15.0;
 float humidityInOffset = 0.0;
+
+
+
+// define crap for ADC converter to read buttons
+//#define DEBUGBUTTONS    // by defining this we'll get debug serial output for button values
+
+
+struct button {
+  int id;
+  int low;  //low threshold on the A0 input
+  int high; //high threshold on the A0 input
+};
+
+constexpr struct button b1 { 1,  720,  730 };  // select
+constexpr struct button b2 { 2,  480,  500 };  // left
+constexpr struct button b3 { 3,  145,  155 };  // up
+constexpr struct button b4 { 4,  315,  330 };  // down
+constexpr struct button b5 { 5,   20,   30 };  // right
+
+// Button debounce and ADC converting variables
+int timer = 500;
+int reading;
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+int tmpButtonState = LOW;    // the current reading from the input pin
+unsigned long lastButtonRead = 0;
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned int debounceDelay = 50;    // the debounce time; increase if the output flickers
+unsigned int analogReadDelay = 20;
+
+bool b1state = OFF;
+bool b2state = OFF;
+bool b3state = OFF;
+bool b4state = OFF;
+bool b5state = OFF;
+
 
 
 void printConstants() {
@@ -90,6 +131,8 @@ void printDhtSerial() {
   Serial.print("Heat index  In: ");
   Serial.print(hiIn);
   Serial.println(" *C");
+  Serial.print("FAN should be: ");
+  Serial.println(fanauto);
 }
 
 
@@ -104,6 +147,8 @@ void printDhtLCD() {
   lcd.print(tempOut, 1);
   lcd.print(" Dew:");
   lcd.print(dewOut, 1);
+  lcd.print(" Man:");
+  lcd.print(manualmode);
 
   // indoor values
   lcd.setCursor(0,1); //Start at character 0 on line 0
@@ -113,6 +158,8 @@ void printDhtLCD() {
   lcd.print(tempIn, 1);
   lcd.print(" Dew:");
   lcd.print(dewIn, 1);
+  lcd.print(" Fan:");
+  lcd.print(fanstate);
 }
 
 
@@ -163,9 +210,31 @@ void setup() {
 
 
 void loop() {
-  delay(1000);
-  lcd.scrollDisplayLeft();
-  //if ( millis() % 1500 == 0 ) lcd.scrollDisplayLeft();
+
+  //// deciding what to do with the FAN
+  if ( millis() > timerfan )  {    // switch fan not more than once every FANSWITCHFREQUENCY
+    timerfan = millis() + FANSWITCHFREQUENCY;
+
+    if ( !manualmode ) {
+       fanstate = fanauto;
+    }
+    Serial.print("FAN auto: ");
+    Serial.print(fanauto);
+    Serial.print(" Mode: ");
+    Serial.print(manualmode);
+    Serial.print(" FAN state: ");
+    Serial.println(fanstate);
+
+    digitalWrite(FANPIN, fanstate);
+    
+  }
+
+
+  if ( millis() > timerlcd ) {
+    printDhtLCD();      //// print new values on LCD
+    lcd.scrollDisplayLeft();
+    timerlcd = millis() + LCDREFRESH;
+  }
 
 
   if ( millis() > timerdht ) {    // switch fan not more than once every FANSWITCHFREQUENCY
@@ -198,31 +267,76 @@ void loop() {
       hiOut = outdht.computeHeatIndex(tempOut, humidityOut, false);
       hiIn = indht.computeHeatIndex(tempIn, humidityIn, false);
 
+
+      // set suggested fan state  
+      if ( dewOut < (dewIn - DEWPOINTDELTA - FANTOGGLEDELTA )) {
+         // turn on fan if dewpoint outside is < dewpoint inside - the delta 
+         fanauto = ON;
+      } else if ( dewOut > (dewIn - DEWPOINTDELTA + FANTOGGLEDELTA ) ) {
+         fanauto = OFF;
+      }
+
       printDhtSerial();   //// printing it all on the Serial if we actually got values
-      printDhtLCD();      //// print new values on LCD
-    }
-  
-  }
-
-
-
-
-  //// deciding what to do with the FAN
-  if ( millis() > timerfan ) {    // switch fan not more than once every FANSWITCHFREQUENCY
-    Serial.print("FAN ...");
-    timerfan = millis() + FANSWITCHFREQUENCY;
-    if ( dewOut < (dewIn - DEWPOINTDELTA - FANTOGGLEDELTA )) {
-       // turn on fan if dewpoint outside is < dewpoint inside - the delta 
-       digitalWrite(FANPIN, ON);
-       Serial.println(" ON");
-    } else if ( dewOut > (dewIn - DEWPOINTDELTA + FANTOGGLEDELTA ) ) {
-       // turn off fan
-       digitalWrite(FANPIN, OFF);
-       Serial.println(" OFF");
-    } else {
-       Serial.println(" unchanged due to flap protection");
     }
   }
 
+
+
+
+
+
+
+
+  if ((millis() - lastButtonRead) > analogReadDelay ) {
+    lastButtonRead = millis();
+
+    reading = analogRead(A0);
+
+    if      (reading>=b1.low && reading<=b1.high) tmpButtonState = b1.id;       //Read switch 1
+    else if (reading>=b2.low && reading<=b2.high) tmpButtonState = b2.id;       //Read switch 2
+    else if (reading>=b3.low && reading<=b3.high) tmpButtonState = b3.id;       //Read switch 3
+    else if (reading>=b4.low && reading<=b4.high) tmpButtonState = b4.id;       //Read switch 4
+    else if (reading>=b5.low && reading<=b5.high) tmpButtonState = b5.id;       //Read switch 5
+    else    tmpButtonState = LOW;                                               //No button is pressed;
+
+    if (tmpButtonState != lastButtonState) {
+      lastDebounceTime = millis();
+    }
+
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+      buttonState = tmpButtonState;
+    }
+    lastButtonState = tmpButtonState;
+
+
+    switch(buttonState){
+      case LOW:
+        if ( b1state ) {
+           fanstate = !fanstate;
+           b1state = false;
+        }
+        if ( b2state ) {
+           manualmode = !manualmode;
+           b2state = false;
+        }
+        break;
+      case b1.id:
+        b1state = true;
+        break;
+      case b2.id:
+        b2state = true;
+        break;
+    }
+
+
+#ifdef DEBUGBUTTONS
+    if ( reading < 1000 ) {
+      char buffer[100];
+      sprintf(buffer, "reading %d\tbutton: %d\r\n", reading, buttonState);
+      Serial.print(buffer);
+    }
+#endif
+
+  }
 
 }
