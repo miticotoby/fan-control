@@ -84,8 +84,10 @@ bool b5state = OFF;
 
 
 void printConstants() {
-  Serial.println("fan-control");
-  Serial.print("Sensor Polling interval: ");
+  Serial.println("fan-control: https://github.com/miticotoby/fan-control");
+  Serial.print("Fan switch interval: ");
+  Serial.print(FANSWITCHFREQUENCY);
+  Serial.print("\tSensor polling interval: ");
   Serial.print(DHTREADFREQUENCY);
   Serial.print("\tDewPointDelta: ");
   Serial.print(DEWPOINTDELTA);
@@ -93,13 +95,13 @@ void printConstants() {
   Serial.print(FANTOGGLEDELTA);
   Serial.print("\tFanPin: ");
   Serial.println(FANPIN);
-  Serial.print("DHT Sensor OUT: ");
+  Serial.print("DHT sensor OUT: ");
   Serial.print(OUTTYPE);
-  Serial.print("\tPin: ");
+  Serial.print("\tpin: ");
   Serial.println(OUTPIN);
-  Serial.print("DHT Sensor  IN: ");
+  Serial.print("DHT sensor  IN: ");
   Serial.print(INTYPE);
-  Serial.print("\tPin: ");
+  Serial.print("\tpin: ");
   Serial.println(INPIN);
 }
 
